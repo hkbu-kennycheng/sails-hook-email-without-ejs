@@ -4,7 +4,6 @@
 
 var nodemailer = require('nodemailer');
 var htmlToText = require('nodemailer-html-to-text').htmlToText;
-var ejs = require('ejs');
 var fs = require('fs');
 var path = require('path');
 var async = require('async');
@@ -28,30 +27,6 @@ module.exports = function Email(sails) {
   var transport;
   var self;
 
-  var compileTemplate = function (view, data, cb) {
-    // Use Sails View Hook if available
-    if (sails.hooks.views && sails.hooks.views.render) {
-      var relPath = path.relative(sails.config.paths.views, view);
-      sails.hooks.views.render(relPath, data, cb);
-      return;
-    }
-
-    // No Sails View hook, fallback to ejs
-    fs.readFile(view + '.ejs', function (err, source) {
-      if (err) return cb(err);
-
-      try {
-        var compileFn = ejs.compile((source || "").toString(), {
-          cache: true, filename: view
-        });
-
-        cb(null, compileFn(data));
-      } catch (e) {
-        return cb(e);
-      }
-    });
-  };
-
   return {
 
     /**
@@ -65,15 +40,12 @@ module.exports = function Email(sails) {
           user: 'myemailaddress@gmail.com',
           pass: 'mypassword'
         },
-        templateDir: path.resolve(sails.config.appPath, 'views/emailTemplates'),
         from: 'noreply@hydra.com',
         testMode: true
       }
     },
 
     configure: function () {
-      // Ensure we have the full path, relative to app directory
-      sails.config[this.configKey].templateDir = path.resolve(sails.config.appPath, sails.config[this.configKey].templateDir);
     },
 
 
@@ -83,9 +55,6 @@ module.exports = function Email(sails) {
     initialize: function (cb) {
       self = this;
 
-      // Optimization for later on: precompile all the templates here and
-      // build up a directory of named functions.
-      //
       if (sails.config[self.configKey].testMode) {
         transport = {
           sendMail: function (options, cb) {
@@ -137,20 +106,11 @@ module.exports = function Email(sails) {
 
     /**
      * Send an email.
-     * @param  {Sting}    template (a named template to render)
-     * @param  {Object}   data (data to pass into the template)
-     * @param  {Object}   options (email options including to, from, etc)
+     * @param  {Object}   options (email options including to, from, html, text, etc)
      * @param  {Function} cb
      */
 
-    send: function (template, data, options, cb) {
-
-      data = data || {};
-      // Turn off layouts by default
-      if (typeof data.layout === 'undefined') data.layout = false;
-
-      var templateDir = sails.config[self.configKey].templateDir;
-      var templatePath = path.join(templateDir, template);
+    send: function (options, cb) {
 
       // Set some default options
       var defaultOptions = {
@@ -161,26 +121,8 @@ module.exports = function Email(sails) {
 
       async.auto({
 
-            // Grab the HTML version of the email template
-            compileHtmlTemplate: function (next) {
-              compileTemplate(templatePath + "/html", data, next);
-            },
-
-            // Grab the Text version of the email template
-            compileTextTemplate: function (next) {
-              compileTemplate(templatePath + "/text", data, function (err, html) {
-                // Don't exit out if there is an error, we can generate plaintext
-                // from the HTML version of the template.
-                if (err) return next();
-                next(null, html);
-              });
-            },
-
             // Send the email
-            sendEmail: ['compileHtmlTemplate', 'compileTextTemplate', function (next, results) {
-
-              defaultOptions.html = results.compileHtmlTemplate;
-              if (results.compileTextTemplate) defaultOptions.text = results.compileTextTemplate;
+            sendEmail: function (next) {
 
               // `options`, e.g.
               // {
@@ -192,7 +134,7 @@ module.exports = function Email(sails) {
               mailOptions.to = sails.config[self.configKey].alwaysSendTo || mailOptions.to;
 
               transport.sendMail(mailOptions, next);
-            }]
+            }
 
           },
 
