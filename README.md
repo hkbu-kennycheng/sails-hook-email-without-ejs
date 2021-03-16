@@ -12,8 +12,6 @@
 
 
 
-[![Dependency Status](https://david-dm.org/balderdashy/sails-hook-email.svg)](https://david-dm.org/balderdashy/sails-hook-email)
-
 Email hook for [Sails JS](http://sailsjs.org), using [Nodemailer](https://github.com/andris9/Nodemailer/blob/v1.3.4/README.md)
 
 *Note: This requires Sails v0.10.6+.*
@@ -67,7 +65,7 @@ Given the following **testEmail.ejs** file contained in the folder **views/email
 <p>Love,<br/><%=senderName%></p>
 ```
 
-executing the following command (after [configuring for your email service](https://github.com/balderdashy/sails-hook-email/#configuration) and turning off test mode) :
+executing the following command (after [configuring for your email service](https://github.com/hkbu-kennycheng/sails-hook-email-without-ejs/#configuration) and turning off test mode) :
 
 ```
 sails.hooks['email-without-ejs'].send({
