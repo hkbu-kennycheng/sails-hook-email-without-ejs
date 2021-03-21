@@ -71,7 +71,7 @@ executing the following command (after [configuring for your email service](http
 sails.hooks['email-without-ejs'].send({
     to: "joe@example.com",
     subject: "Hi there",
-    html: await sails.reanderView('emailTemplates/testEmail', {
+    html: await sails.renderView('emailTemplates/testEmail', {
         recipientName: "Joe",
         senderName: "Sue",
         layout: false
